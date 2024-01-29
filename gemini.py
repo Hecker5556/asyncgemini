@@ -1,5 +1,5 @@
 import aiohttp, aiohttp_socks, json
-from env import apikey, proxy
+# from env import apikey, proxy
 async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aiohttp_socks.ProxyConnector = aiohttp.TCPConnector()):
     headers = {
     'Content-Type': 'application/json',
