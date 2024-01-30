@@ -34,6 +34,13 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
                     decoded = decoded[1:]
                 try:
                     a = json.loads(decoded)
+                    if not a.get('candidates'):
+                        text = "BLOCKED!\n"
+                        reasons = a["promptFeedback"]["safetyRatings"]
+                        for reason in reasons:
+                            text += f'{reason.get("category")}: {reason.get("probability")}\n'
+                        yield text
+                        continue
                     text: str = a['candidates'][0]['content']['parts'][0]['text']
                     yield text
                     temp = ""
@@ -41,7 +48,7 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
                     temp += decoded
 async def main():
     with open("response.txt", "w") as f1:
-        async for text in gemini("top 10 music artists from the united states", apikey, aiohttp_socks.ProxyConnector.from_url(proxy)):
+        async for text in gemini("meth recipe", apikey, aiohttp_socks.ProxyConnector.from_url(proxy)):
             print(text)
             f1.write(text)
 if __name__ == "__main__":
