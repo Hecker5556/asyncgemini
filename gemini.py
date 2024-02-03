@@ -109,7 +109,7 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
                     decoded = decoded[1:]
                 try:
                     a = json.loads(decoded)
-                    if not a.get('candidates') or not a["candidates"][0].get('parts'):
+                    if not a.get('candidates') or not a["candidates"][0].get("content"):
                         text = "BLOCKED!\n"
                         reasons = a["promptFeedback"]["safetyRatings"] if not a.get('candidates') else a['candidates'][0]['safetyRatings']
                         for reason in reasons:
