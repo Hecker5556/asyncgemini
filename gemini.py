@@ -2,13 +2,15 @@ import aiohttp, aiohttp_socks, json, base64, os
 from PIL import Image
 from datetime import datetime
 import io
-async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aiohttp_socks.ProxyConnector = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None):
+from typing import Literal
+async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aiohttp_socks.ProxyConnector = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
     connector (aiohttp.TCPConnector | aiohttp_socks.ProxyConnector): connector to use (ignore if you dont know) [optional]
     image (str | bytes | io.BufferedReader): filepath/link/bytes/reader to an image to use with gemini pro vision [optional]
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
+    safety (Literal['none', 'low', 'medium', 'high']): safety type to use gemini with
     """
     
     headers = {
@@ -48,6 +50,18 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
         json_data = {
             'contents': parsed
         }
+    json_data["safetySettings"] = []
+    categories = ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT']
+    thresholds = {
+        "none": 'BLOCK_NONE',
+        "low": 'BLOCK_ONLY_HIGH',
+        "medium": 'BLOCK_MEDIUM_AND_ABOVE',
+        "high": "BLOCK_LOW_AND_ABOVE"
+    }
+    threshold = thresholds.get(safety)
+    for category in categories:
+        
+        json_data["safetySettings"].append({"category": category, "threshold": threshold})
     if image:
         islink: bool = False
         if not isinstance(image, bytes) and not isinstance(image, io.BufferedReader) and not os.path.exists(image):
