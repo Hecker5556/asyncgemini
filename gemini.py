@@ -12,7 +12,7 @@ async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
-    proxy (str | aiohttp_socks.ProxyConnector): proxy to use (ignore if you dont know) [optional]
+    proxy (str): proxy to use (ignore if you dont know) [optional]
     image (str | bytes | io.BufferedReader): filepath/link/bytes/reader to an image to use with gemini pro vision [optional]
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
     safety (Literal['none', 'low', 'medium', 'high']): safety type to use gemini with
