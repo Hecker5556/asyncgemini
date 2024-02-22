@@ -3,16 +3,21 @@ from PIL import Image
 from datetime import datetime
 import io
 from typing import Literal
-async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aiohttp_socks.ProxyConnector = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
+def get_connector(proxy: str):
+    if proxy.startswith("https"):
+        return aiohttp.TCPConnector()
+    elif proxy.startswith("socks"):
+        return aiohttp_socks.ProxyConnector.from_url(proxy)
+async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
-    connector (aiohttp.TCPConnector | aiohttp_socks.ProxyConnector): connector to use (ignore if you dont know) [optional]
+    proxy (str | aiohttp_socks.ProxyConnector): proxy to use (ignore if you dont know) [optional]
     image (str | bytes | io.BufferedReader): filepath/link/bytes/reader to an image to use with gemini pro vision [optional]
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
     safety (Literal['none', 'low', 'medium', 'high']): safety type to use gemini with
     """
-    
+
     headers = {
     'Content-Type': 'application/json',
     }
@@ -67,8 +72,8 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
         if not isinstance(image, bytes) and not isinstance(image, io.BufferedReader) and not os.path.exists(image):
             if image.startswith("https://"):
                 with open("image", "wb") as f1:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(image) as r:
+                    async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
+                        async with session.get(image, proxy=proxy if proxy.startswith('https') else None) as r:
                             while True:
                                 chunk = await r.content.read(1024)
                                 if not chunk:
@@ -108,10 +113,8 @@ async def gemini(prompt: str, apikey: str, connector: aiohttp.TCPConnector | aio
         mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:streamGenerateContent'
     elif history:
         mainurl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent"
-    if not connector:
-        connector = aiohttp.TCPConnector()
-    async with aiohttp.ClientSession(connector=connector) as session:
-        async with session.post(mainurl, params=params, headers=headers, json=json_data) as response:
+    async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
+        async with session.post(mainurl, params=params, headers=headers, json=json_data, proxy=proxy if proxy.startswith('https') else None) as response:
             while True:
                 chunk = await response.content.read(1024*10)
                 if not chunk:
@@ -148,7 +151,7 @@ async def main():
                 "text": "it is a saturday!"
             },
         ]
-        async for text in gemini("top warcrimes commited by the USA and israel", apikey, connector=aiohttp_socks.ProxyConnector.from_url(proxy)):
+        async for text in gemini("top warcrimes commited by the USA and israel", apikey, proxy=proxy):
             print(text)
             f1.write(text)
 if __name__ == "__main__":
