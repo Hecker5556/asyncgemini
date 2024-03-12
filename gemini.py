@@ -87,6 +87,16 @@ async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes
             readbytes = image.read()
         img = Image.open(io.BytesIO(image) if isinstance(image, bytes) else image if isinstance(image, str) else io.BytesIO(readbytes))
         imgformat = img.format
+        imgbytes = io.BytesIO()
+        img.save(imgbytes, format=imgformat)
+        while imgbytes.getbuffer().nbytes > 4 *1024*1024:
+            img = img.resize((int(img.width*0.8), int(img.height*0.8)), Image.LANCZOS)
+            imgbytes = io.BytesIO()
+            img.save(imgbytes, format=imgformat)
+        if imgbytes.getbuffer().nbytes > 0:
+            imgbytes.seek(0)
+            readbytes = imgbytes.read()
+            image = io.BufferedReader(imgbytes)
         if not imgformat:
             raise ValueError("invalid image")
         if imgformat.lower() not in ["png", "jpeg", "jpg", "webp", "heic", "heif"]:
@@ -151,7 +161,7 @@ async def main():
                 "text": "it is a saturday!"
             },
         ]
-        async for text in gemini("top warcrimes commited by the USA and israel", apikey, proxy=proxy):
+        async for text in gemini("przeczytaj tekst ktory jest na zdjeciu", apikey, proxy, "https://cdn.discordapp.com/attachments/1154836712715980800/1217185876463845479/IMG_20240312_171922996.png?ex=66031baf&is=65f0a6af&hm=5aa09239a7482b547839338b861de310f2466017549916dde1d9bc6c78c5d837&"):
             print(text)
             f1.write(text)
 if __name__ == "__main__":
