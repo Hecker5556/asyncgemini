@@ -120,7 +120,7 @@ async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes
     temp = ""
     mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:streamGenerateContent'
     if image and not history:
-        mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:streamGenerateContent'
+        mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:streamGenerateContent'
     elif history:
         mainurl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent"
     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
@@ -161,8 +161,8 @@ async def main():
                 "text": "it is a saturday!"
             },
         ]
-        async for text in gemini("przeczytaj tekst ktory jest na zdjeciu", apikey, proxy, "https://cdn.discordapp.com/attachments/1154836712715980800/1217185876463845479/IMG_20240312_171922996.png?ex=66031baf&is=65f0a6af&hm=5aa09239a7482b547839338b861de310f2466017549916dde1d9bc6c78c5d837&"):
-            print(text)
+        async for text in gemini("describe this image", apikey, proxy, image="image-1723407030.jpeg"):
+            print(text, end="")
             f1.write(text)
 if __name__ == "__main__":
     from env import apikey, proxy
