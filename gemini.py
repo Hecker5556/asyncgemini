@@ -4,20 +4,19 @@ from datetime import datetime
 import io
 from typing import Literal
 def get_connector(proxy: str):
-    if proxy.startswith("https"):
-        return aiohttp.TCPConnector()
-    elif proxy.startswith("socks"):
-        return aiohttp_socks.ProxyConnector.from_url(proxy)
-async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
+    return aiohttp_socks.ProxyConnector.from_url(proxy) if proxy and proxy.startswith("socks") else aiohttp.TCPConnector()
+async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro'] = 'gemini-1.5-flash',proxy: str = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
+    model (Literal['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']): model to use
     proxy (str): proxy to use (ignore if you dont know) [optional]
     image (str | bytes | io.BufferedReader): filepath/link/bytes/reader to an image to use with gemini pro vision [optional]
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
     safety (Literal['none', 'low', 'medium', 'high']): safety type to use gemini with
     """
-
+    if model == 'gemini-1.0-pro' and image:
+        raise ValueError("Pro vision deprecated for gemini 1.0")
     headers = {
     'Content-Type': 'application/json',
     }
@@ -118,13 +117,13 @@ async def gemini(prompt: str, apikey: str, proxy: str = None, image: str | bytes
         }}
         json_data["contents"][0]["parts"].append(imgdata)
     temp = ""
-    mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:streamGenerateContent'
+    mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:streamGenerateContent'
     if image and not history:
-        mainurl = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:streamGenerateContent'
+        mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:streamGenerateContent'
     elif history:
-        mainurl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent"
+        mainurl = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
-        async with session.post(mainurl, params=params, headers=headers, json=json_data, proxy=proxy if proxy.startswith('https') else None) as response:
+        async with session.post(mainurl, params=params, headers=headers, json=json_data, proxy=proxy if proxy and proxy.startswith('https') else None) as response:
             while True:
                 chunk = await response.content.read(1024*10)
                 if not chunk:
@@ -161,10 +160,45 @@ async def main():
                 "text": "it is a saturday!"
             },
         ]
-        async for text in gemini("describe this image", apikey, proxy, image="image-1723407030.jpeg"):
+        async for text in gemini("describe this image", apikey,'gemini-1.5-flash', proxy, image="image-1723407030.jpeg"):
             print(text, end="")
             f1.write(text)
+async def chatting():
+    history = []
+    model = 'gemini-1.5-flash'
+    models = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
+    image = None
+    prox = None
+    while True:
+        userinput = str(input(f"\n\x1b[32mPROMPT:\x1b[39m "))
+        image = None
+        if userinput.lower() == "model":
+            for index, mdl in enumerate(models):
+                print(f"[{index}] - {mdl}")
+            print("select which model to use")
+            userinput = int(input("MODEL NUMBER: "))
+            model = models[userinput]
+            print(f"selected {model}")
+            continue
+        elif userinput.lower() == "quit" or userinput.lower() == 'exit':
+            break
+        elif userinput == "image":
+            image = str(input("path or url to image: "))
+            userinput = str(input("prompt to go with image: "))
+        elif userinput == "proxy":
+            print("using proxy now")
+            prox = proxy
+            continue
+        response = ""
+        async for text in gemini(userinput, apikey,model, image=image, history=history, proxy=prox):
+            print(text, end="")
+            response += text
+        if not response:
+            continue
+        history.append({"role": "user", "text": userinput})
+        history.append({"role": "model", "text": response})
+        
 if __name__ == "__main__":
     from env import apikey, proxy
     import asyncio
-    asyncio.run(main())
+    asyncio.run(chatting())
