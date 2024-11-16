@@ -72,7 +72,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'g
             if image.startswith("https://"):
                 with open("image", "wb") as f1:
                     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
-                        async with session.get(image, proxy=proxy if proxy.startswith('https') else None) as r:
+                        async with session.get(image, proxy=proxy if proxy and proxy.startswith('https') else None) as r:
                             while True:
                                 chunk = await r.content.read(1024)
                                 if not chunk:
@@ -128,11 +128,17 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'g
                 chunk = await response.content.read(1024*10)
                 if not chunk:
                     break
-                if chunk == b']':
-                    continue
-                decoded = chunk.decode("utf-8")
-                if decoded.startswith("[") or decoded.startswith(","):
-                    decoded = decoded[1:]
+                try:
+                    a = json.loads(chunk)
+                    if a[0].get("error"):
+                        yield a[0]["error"]["message"]
+                        break
+                except:
+                    if chunk == b']':
+                        continue
+                    decoded = chunk.decode("utf-8")
+                    if decoded.startswith("[") or decoded.startswith(","):
+                        decoded = decoded[1:]
                 try:
                     a = json.loads(decoded)
                     if not a.get('candidates') or not a["candidates"][0].get("content"):
@@ -164,6 +170,15 @@ async def main():
             print(text, end="")
             f1.write(text)
 async def chatting():
+    if not os.path.exists("cache.json"):
+        cache = {}
+    else:
+        with open("cache.json", "r") as f1:
+            try:
+                cache = json.load(f1)
+            except Exception as e:
+                print(e)
+                cache = {}
     history = []
     model = 'gemini-1.5-flash'
     models = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
@@ -184,13 +199,33 @@ async def chatting():
             break
         elif userinput == "image":
             image = str(input("path or url to image: "))
+            if cache.get(image) and os.path.exists(cache.get(image)):
+                image = cache.get(image)
+            else:
+                if not os.path.exists(image):
+                    async with aiohttp.ClientSession(connector=get_connector(prox)) as session:
+                        async with session.get(image) as r:
+                            if "image" not in r.headers.get("content-type", ""):
+                                print("link provided doesnt lead to an image")
+                                continue
+                            filename = f"image-{int(datetime.now().timestamp())}." + r.headers.get("content-type").split("/")[1] 
+                            with open(filename, 'wb') as f1:
+                                while True:
+                                    chunk = await r.content.read(1024)
+                                    if not chunk:
+                                        break
+                                    f1.write(chunk)
+                    cache[image] = filename
+                    with open("cache.json", "w") as f1:
+                        json.dump(cache, f1)
+                    image = filename
             userinput = str(input("prompt to go with image: "))
         elif userinput == "proxy":
             print("using proxy now")
             prox = proxy
             continue
         response = ""
-        async for text in gemini(userinput, apikey,model, image=image, history=history, proxy=prox):
+        async for text in gemini(userinput, apikey,model, image=image, history=None if image else history, proxy=prox):
             print(text, end="")
             response += text
         if not response:
