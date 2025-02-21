@@ -4,12 +4,12 @@ from datetime import datetime
 import io
 from typing import Literal
 def get_connector(proxy: str):
-    return aiohttp_socks.ProxyConnector.from_url(proxy) if proxy and proxy.startswith("socks") else aiohttp.TCPConnector()
-async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro'] = 'gemini-1.5-flash',proxy: str = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
+    return aiohttp_socks.ProxyConnector.from_url(proxy) if proxy else aiohttp.TCPConnector()
+async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro'] = 'gemini-2.0-flash',proxy: str = None, image: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none'):
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
-    model (Literal['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']): model to use
+    model (Literal['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']): model to use
     proxy (str): proxy to use (ignore if you dont know) [optional]
     image (str | bytes | io.BufferedReader): filepath/link/bytes/reader to an image to use with gemini pro vision [optional]
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
@@ -72,7 +72,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'g
             if image.startswith("https://"):
                 with open("image", "wb") as f1:
                     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
-                        async with session.get(image, proxy=proxy if proxy and proxy.startswith('https') else None) as r:
+                        async with session.get(image) as r:
                             while True:
                                 chunk = await r.content.read(1024)
                                 if not chunk:
@@ -123,7 +123,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-1.5-flash', 'g
     elif history:
         mainurl = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
-        async with session.post(mainurl, params=params, headers=headers, json=json_data, proxy=proxy if proxy and proxy.startswith('https') else None) as response:
+        async with session.post(mainurl, params=params, headers=headers, json=json_data,) as response:
             while True:
                 chunk = await response.content.read(1024*10)
                 if not chunk:
@@ -180,8 +180,8 @@ async def chatting():
                 print(e)
                 cache = {}
     history = []
-    model = 'gemini-1.5-flash'
-    models = ['gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
+    model = 'gemini-2.0-flash'
+    models = ['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
     image = None
     prox = None
     while True:
