@@ -1,12 +1,14 @@
-# Asynchronous python code that streams gemini ai output
-The code creates a generator which you can iterate through
+# Bare bones script for interacting with google's gemini
+More customizable options and seeing how the API works instead of using SDK. Ability to use proxies and such.
 
 ## Why?
-I wrote this because I wanted to be able to stream output in an asynchronous way for my discord bot and also give it an option to use a proxy as gemini ai api isn't avaliable in europe yet.
+Wanted to use gemini in my discord bot and also use an american proxy because some of the models aren't avaliable in Europe
 
 ## How does it work?
-It streams the response in chunks of 10kb, and if json parsing fails, adds to a temporary string next chunks until json parsing works and yields the text
+Aiohttp requests like the API docs show
 
+## What does it support?
+I try to update to latest models, but for now the 2.5, 2.0 and 1.5 models (for free tier) are supported, with tts and image generation support
 ## Setup
 I used python 3.10.9
 ```bash
@@ -21,6 +23,8 @@ pip install -r requirements.txt
 
 ## Usage
 ```python
-async for text in gemini("top 10 music artists", apikey, aiohttp_socks.ProxyConnector.from_url(proxy)):
-    print(text)
+async def main():
+    response = await gemini("top 10 music artists", apikey, aiohttp_socks.ProxyConnector.from_url(proxy))
+    files = response['data']
+    text = response['text']
 ```
