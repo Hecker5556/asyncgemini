@@ -218,7 +218,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                         args = "-f s16le -ar 24000 -ac 1 -i".split() + [tempfile, result_file]
                         process = await asyncio.subprocess.create_subprocess_exec("ffmpeg", *args)
                         await process.communicate()
-                        i['filename'] = filename
+                        i['filename'] = result_file
                         os.remove(tempfile)
                     elif "image" in i['mimeType']:
                         filename = f"image-{datetime.now().timestamp():.0f}{ext}"
