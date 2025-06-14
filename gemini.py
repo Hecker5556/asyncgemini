@@ -188,13 +188,13 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
             if result.get('error'):
                 if result['error']['status'] == 'RESOURCE_EXHAUSTED':
                     result['error']['message'] += f"\n{result['error']['details'][0]['violations'][0].get('quotaValue')} rpd exhausted"
-                return result['error']['message']
+                return {"text": result['error']['message'], "data": []}
             if not result.get('candidates') or not result["candidates"][0].get("content"):
                 text = "BLOCKED!\n"
                 reasons = result["promptFeedback"]["safetyRatings"] if not result.get('candidates') else result['candidates'][0]['safetyRatings']
                 for reason in reasons:
                     text += f'{reason.get("category")}: {reason.get("probability")}\n'
-                return text
+                return {"text": text}
             if isinstance(result['candidates'][0]['content']['parts'], list):
                 info = {"text": "", "data": []}
                 for i in result['candidates'][0]['content']['parts']:
