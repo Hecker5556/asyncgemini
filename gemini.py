@@ -214,7 +214,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                     with open(tempfile, 'wb') as f1:
                         f1.write(base64.b64decode(i['base64']))
                     if ext == ".pcm":
-                        result_file = f"tts-audio-{datetime.now().timestamp():.0f}.mp3"
+                        result_file = f"tts-audio-{datetime.now().timestamp():.0f}.wav"
                         args = "-f s16le -ar 24000 -ac 1 -i".split() + [tempfile, result_file]
                         process = await asyncio.subprocess.create_subprocess_exec("ffmpeg", *args)
                         await process.communicate()
