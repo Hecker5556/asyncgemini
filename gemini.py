@@ -102,7 +102,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                 }
             }
         },})
-    if searching_threshold and model in ['gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-06-05', 'gemini-2.0-flash']:
+    if searching_threshold and model in ['gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-06-05',]:
         json_data.update({"tools": [{"google_search_retrieval": {
                   "dynamic_retrieval_config": {
                     "mode": "MODE_DYNAMIC",
