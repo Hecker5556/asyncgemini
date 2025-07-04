@@ -170,15 +170,15 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
             img.close()
 
         data = base64.b64encode(open(file, 'rb').read()).decode("utf-8")
-        filedata = {"inlineData": {
-                    "mimeType": mimetype,
+        filedata = {"inline_data": {
+                    "mime_type": mimetype[0],
                     "data": data
         }}
         json_data["contents"][0]["parts"].append(filedata)
     mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:generateContent'
     if file and not history:
         mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:generateContent'
-    elif history or model in ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-06-05', 'gemini-2.0-flash-preview-image-generation', 'gemini-2.5-flash-preview-05-20']:
+    if history or model in ['gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-06-05', 'gemini-2.0-flash-preview-image-generation', 'gemini-2.5-flash-preview-05-20']:
         mainurl = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
         async with session.post(mainurl, params=params, headers=headers, json=json_data,) as response:
@@ -284,7 +284,7 @@ async def chatting():
         elif userinput.lower() == "quit" or userinput.lower() == 'exit':
             break
         elif userinput == "file":
-            file = str(input("path or url to image: "))
+            file = str(input("path or url to file: "))
             if cache.get(file) and os.path.exists(cache.get(file)):
                 file = cache.get(file)
             else:
@@ -302,7 +302,7 @@ async def chatting():
                     with open("cache.json", "w") as f1:
                         json.dump(cache, f1)
                     file = filename
-            userinput = str(input("prompt to go with image: "))
+            userinput = str(input("prompt to go with file: "))
         elif userinput == "proxy":
             print("using proxy now")
             prox = proxy
