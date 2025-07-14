@@ -139,6 +139,8 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                                         break
                                     f1.write(chunk)
                             mimetype = mimetypes.guess_type(file)
+                            if not mimetype[0]:
+                                mimetype = [r.headers.get('content-type'), None]
                             filename = file
             else:
                 raise FileNotFoundError("cant find file")
@@ -291,7 +293,13 @@ async def chatting():
                 if not os.path.exists(file):
                     async with aiohttp.ClientSession(connector=get_connector(prox)) as session:
                         async with session.get(file) as r:
-                            filename = f"image-{int(datetime.now().timestamp())}" + mimetypes.guess_extension(r.headers.get("content-type"))
+                            filename = f"image-{int(datetime.now().timestamp())}"
+                            if ext := mimetypes.guess_extension(r.headers.get("content-type")):
+                                filename += ext
+                            elif r.headers.get("content-type").lower() == "image/webp":
+                                filename += ".webp"
+                            else:
+                                raise ValueError(f"Couldnt get ext for {r.headers.get('content-type')}")
                             with open(filename, 'wb') as f1:
                                 while True:
                                     chunk = await r.content.read(1024)
