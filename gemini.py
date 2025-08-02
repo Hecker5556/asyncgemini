@@ -39,7 +39,7 @@ voices = {
     "Sadaltager": "Knowledgeable",
     "Sulafat": "Warm"
 }
-async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-preview-05-20','gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-06-05', 'gemini-2.0-flash-preview-image-generation','gemini-2.0-flash','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro'] = 'gemini-2.0-flash',proxy: str = None, file: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none', voice: str = 'Sadachbia', searching_threshold: float = 0.8):
+async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash','gemini-2.5-flash-preview-tts', 'gemini-2.5-pro', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-preview-image-generation','gemini-2.0-flash', 'gemini-2.0-flash-lite','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro'] = 'gemini-2.5-flash',proxy: str = None, file: str | bytes | io.BufferedReader = None, history: list[dict] = None, safety: Literal['none', 'low', 'medium', 'high'] = 'none', voice: str = 'Sadachbia', searching_threshold: float = 0.8, system_instructions: str = None):
     """
     prompt (str): prompt to give [required]
     apikey (str): api key to use [get one here](https://makersuite.google.com/app/apikey) [required]
@@ -49,6 +49,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
     history (list[dict]): history to provide to gemini, format: [{"role": "user", "text": "hello world"}, {"role": "model", "text": "greetings!"}]
     safety (Literal['none', 'low', 'medium', 'high']): safety type to use gemini with
     searching_threshold (float): between 0 and 1, gemini assumes probability that query needs google search to have valid info, the higher searching_threshold, the more certainty gemini needs to perform a search
+    system_instructions (str): instructions to give to gemini before prompting.
     """
     if model == 'gemini-1.0-pro' and file:
         raise ValueError("Pro vision deprecated for gemini 1.0")
@@ -102,15 +103,14 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                 }
             }
         },})
-    if searching_threshold and model in ['gemini-2.5-flash-preview-05-20', 'gemini-2.5-pro-preview-06-05',]:
-        json_data.update({"tools": [{"google_search_retrieval": {
-                  "dynamic_retrieval_config": {
-                    "mode": "MODE_DYNAMIC",
-                    "dynamic_threshold": searching_threshold,
-                }
+    if searching_threshold and model in ['gemini-2.5-flash', 'gemini-2.5-pro',]:
+        json_data.update({"tools": [
+            {
+                "google_search": {}
             }
-        }
-    ]})
+            ]})
+    if system_instructions:
+        json_data.update({"system_instruction": {"parts": [{"text": system_instructions}]}})
     json_data["safetySettings"] = []
     categories = ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT']
     thresholds = {
@@ -198,7 +198,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                     text += f'{reason.get("category")}: {reason.get("probability")}\n'
                 return {"text": text}
             if isinstance(result['candidates'][0]['content']['parts'], list):
-                info = {"text": "", "data": []}
+                info = {"text": "", "data": [], "sources": []}
                 for i in result['candidates'][0]['content']['parts']:
                     if not i.get("inlineData"):
                         info['text'] += i['text']
@@ -207,6 +207,9 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash-prev
                             "base64": i['inlineData']['data'],
                             "mimeType": i['inlineData']['mimeType']
                         }]
+                if result['candidates'][0].get("groundingMetadata"):
+                    for i in result['candidates'][0]['groundingMetadata'].get("groundingChunks", []):
+                        info['sources'].append(i.get('web'))
                 for i in info['data']:
                     ext = mimetypes.guess_extension(i['mimeType'])
                     if not ext:
@@ -269,7 +272,7 @@ async def chatting():
                 cache = {}
     history = []
     model = 'gemini-2.0-flash'
-    models = ['gemini-2.5-flash-preview-05-20','gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-06-05', 'gemini-2.0-flash-preview-image-generation','gemini-2.0-flash','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
+    models = ['gemini-2.5-flash','gemini-2.5-flash-preview-tts', 'gemini-2.5-pro', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-preview-image-generation','gemini-2.0-flash', 'gemini-2.0-flash-lite','gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-1.5-pro']
     file = None
     prox = None
     while True:
