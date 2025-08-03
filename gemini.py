@@ -180,7 +180,7 @@ async def gemini(prompt: str, apikey: str, model: Literal['gemini-2.5-flash','ge
     mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:generateContent'
     if file and not history:
         mainurl = f'https://generativelanguage.googleapis.com/v1/models/{model}:generateContent'
-    if history or model in ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-preview-image-generation', 'gemini-2.5-flash-lite']:
+    if history or model in ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-preview-image-generation', 'gemini-2.5-flash-lite', 'gemini-2.5-flash-preview-tts']:
         mainurl = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     async with aiohttp.ClientSession(connector=get_connector(proxy)) as session:
         async with session.post(mainurl, params=params, headers=headers, json=json_data,) as response:
